@@ -60,6 +60,11 @@
     </ApplicationDefinition>
     <Compile Include="Models\Person.cs" />
     <Compile Include="Properties\Annotations.cs" />
+    <Compile Include="Tools\Exceptions\InvalidEmailException.cs" />
+    <Compile Include="Tools\Exceptions\InvalidNameException.cs" />
+    <Compile Include="Tools\Exceptions\InvalidSurnameException.cs" />
+    <Compile Include="Tools\Exceptions\PersonDontExistException.cs" />
+    <Compile Include="Tools\Exceptions\TooOldPersonException.cs" />
     <Compile Include="Tools\ILoaderOwner.cs" />
     <Compile Include="Tools\Managers\LoaderManager.cs" />
     <Compile Include="Tools\RelayCommand.cs" />

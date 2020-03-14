@@ -1,12 +1,14 @@
 ﻿    using System;
     using System.ComponentModel;
     using System.Runtime.CompilerServices;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows;
     using Churilova02.Models;
     using Churilova02.Properties;
     using Churilova02.Tools;
+    using Churilova02.Tools.Exceptions;
     using Churilova02.Tools.Managers;
 
     namespace Churilova02.ViewModels
@@ -93,48 +95,40 @@
             {
                 return !String.IsNullOrWhiteSpace(Name) && !String.IsNullOrWhiteSpace(Surname) && !String.IsNullOrWhiteSpace(Email) && (BirthDate!= DateTime.MinValue);
             }
-        
 
-           
+
+
             private void Proceed()
             {
-                if ((DateTime.Today.Year - _person.BirthDate.Year) > 135)
-                {
-                    MessageBox.Show("Error! You are too old!");
-                }
-                else if (_person.BirthDate.CompareTo(DateTime.Today) > 0)
-                {
-                    MessageBox.Show("Error! You don't exist yet!");
-                }
 
-                else {
-                    if (_person.BirthDate.Month.CompareTo(DateTime.Today.Month) == 0 && _person.BirthDate.Day.CompareTo(DateTime.Today.Day) == 0)
+                if (_person.BirthDate.Month.CompareTo(DateTime.Today.Month) == 0 &&
+                    _person.BirthDate.Day.CompareTo(DateTime.Today.Day) == 0)
                 {
                     MessageBox.Show("Happy Birthday! Enjoy your special day!");
                 }
 
-                    _person.CalculateSunSign();
-                    _person.CalculateChineseSign();
-                    _person.CalculateIsAdult();
-                    _person.CalculateIsBirthday();
+                _person.CalculateSunSign();
+                _person.CalculateChineseSign();
+                _person.CalculateIsAdult();
+                _person.CalculateIsBirthday();
 
 
-                    OnPropertyChanged("Name");
-                    OnPropertyChanged("Surname");
-                    OnPropertyChanged("Email");
-                    OnPropertyChanged("BirthDateStr");
-                    OnPropertyChanged("SunSign");
-                    OnPropertyChanged("ChineseSign");
-                    OnPropertyChanged("IsAdult");
-                    OnPropertyChanged("IsBirthday");
+                OnPropertyChanged("Name");
+                OnPropertyChanged("Surname");
+                OnPropertyChanged("Email");
+                OnPropertyChanged("BirthDateStr");
+                OnPropertyChanged("SunSign");
+                OnPropertyChanged("ChineseSign");
+                OnPropertyChanged("IsAdult");
+                OnPropertyChanged("IsBirthday");
 
-                    Thread.Sleep(1000);
+                Thread.Sleep(1000);
 
-                }
 
-            
-                
+
             }
+
+        
 
          
             
@@ -142,8 +136,54 @@
             private async void Proceed(object obj)
             {
                 LoaderManager.Instance.ShowLoader();
-                await Task.Run(() => Proceed());
-                LoaderManager.Instance.HideLoader();
+               bool res = await Task.Run(() =>
+                   { 
+                try
+                {
+                    ValidName(Name);
+                }
+                catch (InvalidNameException e)
+                {
+                    MessageBox.Show(e.Message);
+                    return false;
+                }
+                try
+                {
+                    ValidSurname(Surname);
+                }
+                catch (InvalidSurnameException e)
+                {
+                    MessageBox.Show(e.Message);
+                    return false;
+                }
+                try
+                {
+                    ValidEmail();
+                }
+                catch (InvalidEmailException e)
+                {
+                    MessageBox.Show(e.Message);
+                    return false;
+                }
+                try
+                {
+                    ValidDateOfBirth();
+                }
+                catch (PersonDontExistException e)
+                {
+                    MessageBox.Show(e.Message);
+                    return false;
+                }
+                catch (PersonTooOldException e)
+                {
+                    MessageBox.Show(e.Message);
+                    return false;
+                }
+
+                Proceed();
+                return true;
+               });
+            LoaderManager.Instance.HideLoader();
             }
 
 
@@ -182,9 +222,56 @@
                     OnPropertyChanged();
                 }
             }
-            #endregion
+        #endregion
 
-            internal PersonViewModel()
+
+
+        #region Validation
+
+        private void ValidEmail()
+        {
+            if (!Regex.IsMatch(Email,
+                @"^(?("")("".+?(?<!\\)""@)|(([0-9a-z]((\.(?!\.))|[-!#\$%&'\*\+/=\?\^`\{\}\|~\w])*)(?<=[0-9a-z])@))" +
+                @"(?(\[)(\[(\d{1,3}\.){3}\d{1,3}\])|(([0-9a-z][-0-9a-z]*[0-9a-z]*\.)+[a-z0-9][\-a-z0-9]{0,22}[a-z0-9]))$",
+                RegexOptions.IgnoreCase))
+            {
+                throw new InvalidEmailException(Email);
+            }
+        }
+
+        private static void ValidName(string Name)
+        {
+            if (!Regex.IsMatch(Name, @"^[a-zA-Z]+$"))
+            {
+                throw new InvalidNameException(Name);
+            }
+
+        }
+        private static void ValidSurname(string Surname)
+        {
+            if (!Regex.IsMatch(Surname, @"^[a-zA-Z]+$"))
+            {
+                throw new InvalidSurnameException(Surname);
+            }
+        }
+
+
+        private void ValidDateOfBirth()
+        {
+            if (BirthDate > DateTime.Today)
+            {
+                throw new PersonDontExistException(BirthDate);
+            }
+
+            if (BirthDate.Year < (DateTime.Today.Year - 135))
+            {
+                throw new PersonTooOldException(BirthDate);
+            }
+        }
+        #endregion
+
+
+        internal PersonViewModel()
             {
                 LoaderManager.Instance.Initialize(this);
             }
